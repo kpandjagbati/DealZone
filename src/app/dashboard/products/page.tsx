@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { CreateProductForm } from "@/components/dashboard/CreateProductForm";
+import { EditProductForm } from "@/components/dashboard/EditProductForm";
 import { PageHeader, Panel } from "@/components/dashboard/ui";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -15,8 +16,7 @@ export default async function ProductsPage() {
 
   const canManage =
     session.user.role === "ADMIN" || session.user.role === "GESTIONNAIRE";
-  const canView =
-    canManage || session.user.role === "MAGASINIER";
+  const canView = canManage || session.user.role === "MAGASINIER";
 
   if (!canView) {
     redirect("/dashboard");
@@ -24,9 +24,9 @@ export default async function ProductsPage() {
 
   const [products, categories, suppliers] = await Promise.all([
     prisma.product.findMany({
-      where: { isActive: true },
+      where: canManage ? undefined : { isActive: true },
       include: { category: true, supplier: true },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ isActive: "desc" }, { createdAt: "desc" }],
     }),
     canManage
       ? prisma.category.findMany({
@@ -48,7 +48,7 @@ export default async function ProductsPage() {
         title="Produits"
         subtitle={
           canManage
-            ? "Ajoutez des produits avec leur image et suivez le stock."
+            ? "Ajoutez, modifiez ou désactivez des produits."
             : "Consultez le catalogue et les quantités en stock."
         }
       />
@@ -61,6 +61,31 @@ export default async function ProductsPage() {
         <Panel title={`Catalogue (${products.length})`}>
           {products.length === 0 ? (
             <p className="text-sm opacity-60">Aucun produit pour le moment.</p>
+          ) : canManage ? (
+            <div className="space-y-3">
+              {products.map((product) => (
+                <EditProductForm
+                  key={product.id}
+                  product={{
+                    id: product.id,
+                    sku: product.sku,
+                    name: product.name,
+                    description: product.description,
+                    unit: product.unit,
+                    purchasePrice: product.purchasePrice.toString(),
+                    salePrice: product.salePrice.toString(),
+                    quantity: product.quantity,
+                    alertThreshold: product.alertThreshold,
+                    categoryId: product.categoryId,
+                    supplierId: product.supplierId,
+                    imageUrl: product.imageUrl,
+                    isActive: product.isActive,
+                  }}
+                  categories={categories}
+                  suppliers={suppliers}
+                />
+              ))}
+            </div>
           ) : (
             <ul className="divide-y divide-base-300">
               {products.map((product) => {

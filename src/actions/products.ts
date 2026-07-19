@@ -103,3 +103,93 @@ export async function createProductAction(
   revalidatePath("/dashboard/reports");
   return { success: "Produit créé avec succès" };
 }
+
+const updateProductSchema = productSchema.omit({ quantity: true }).extend({
+  id: z.string().uuid(),
+});
+
+export async function updateProductAction(
+  _prev: ProductActionState,
+  formData: FormData,
+): Promise<ProductActionState> {
+  const session = await requireCatalogAccess();
+  if (!session) {
+    return { error: "Accès refusé" };
+  }
+
+  const parsed = updateProductSchema.safeParse({
+    id: formData.get("id"),
+    sku: formData.get("sku"),
+    name: formData.get("name"),
+    description: formData.get("description") || undefined,
+    unit: formData.get("unit") || "pièce",
+    purchasePrice: formData.get("purchasePrice"),
+    salePrice: formData.get("salePrice"),
+    alertThreshold: formData.get("alertThreshold"),
+    categoryId: formData.get("categoryId"),
+    supplierId: formData.get("supplierId"),
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
+  }
+
+  const clash = await prisma.product.findFirst({
+    where: { sku: parsed.data.sku, NOT: { id: parsed.data.id } },
+  });
+  if (clash) {
+    return { error: "Ce SKU existe déjà" };
+  }
+
+  let imageUrl: string | null | undefined;
+  try {
+    const uploaded = await saveUploadedImage(
+      formData.get("image") as File | null,
+      "products",
+    );
+    imageUrl = uploaded ?? undefined;
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Erreur upload image" };
+  }
+
+  await prisma.product.update({
+    where: { id: parsed.data.id },
+    data: {
+      sku: parsed.data.sku.trim(),
+      name: parsed.data.name.trim(),
+      description: parsed.data.description?.trim() || null,
+      unit: parsed.data.unit.trim(),
+      purchasePrice: parsed.data.purchasePrice,
+      salePrice: parsed.data.salePrice,
+      alertThreshold: parsed.data.alertThreshold,
+      categoryId: parsed.data.categoryId,
+      supplierId: parsed.data.supplierId ?? null,
+      ...(imageUrl ? { imageUrl } : {}),
+    },
+  });
+
+  revalidatePath("/dashboard/products");
+  revalidatePath("/dashboard/reports");
+  return { success: "Produit mis à jour" };
+}
+
+export async function toggleProductActiveAction(formData: FormData) {
+  const session = await requireCatalogAccess();
+  if (!session) return;
+
+  const id = String(formData.get("id") ?? "");
+  if (!id) return;
+
+  const product = await prisma.product.findUnique({ where: { id } });
+  if (!product) return;
+
+  await prisma.product.update({
+    where: { id },
+    data: { isActive: !product.isActive },
+  });
+
+  revalidatePath("/dashboard/products");
+  revalidatePath("/dashboard/movements");
+  revalidatePath("/dashboard/inventory");
+  revalidatePath("/dashboard/reports");
+}

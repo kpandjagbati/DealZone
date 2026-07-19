@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { CompanySettingsForm } from "@/components/dashboard/CompanySettingsForm";
 import { PageHeader, Panel } from "@/components/dashboard/ui";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -12,10 +13,13 @@ export default async function SettingsPage() {
     redirect("/dashboard");
   }
 
-  const me = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { name: true, email: true, avatarUrl: true },
-  });
+  const [me, settings] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { name: true, email: true, avatarUrl: true },
+    }),
+    prisma.companySettings.findFirst(),
+  ]);
 
   if (!me) redirect("/dashboard");
 
@@ -23,10 +27,19 @@ export default async function SettingsPage() {
     <div>
       <PageHeader
         title="Paramètres"
-        subtitle="Photo de profil et informations du compte administrateur."
+        subtitle="Entreprise et photo de profil administrateur."
       />
 
-      <div className="max-w-lg">
+      <div className="grid max-w-4xl gap-6 lg:grid-cols-2">
+        <Panel title="Entreprise">
+          <CompanySettingsForm
+            companyName={settings?.companyName ?? "DealZone"}
+            address={settings?.address ?? null}
+            currency={settings?.currency ?? "XOF"}
+            defaultAlertThreshold={settings?.defaultAlertThreshold ?? 5}
+          />
+        </Panel>
+
         <Panel title="Ma photo de profil">
           <p className="mb-4 text-sm opacity-60">
             Cette photo s&apos;affiche en bas de la barre latérale et dans la

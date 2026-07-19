@@ -8,6 +8,7 @@ import { logoutAction } from "@/actions/auth";
 import { ROLE_LABELS } from "@/lib/roles";
 import {
   HiOutlineChartBar,
+  HiOutlineClipboardCheck,
   HiOutlineClipboardList,
   HiOutlineCog,
   HiOutlineCollection,
@@ -66,6 +67,12 @@ const NAV: NavItem[] = [
     href: "/dashboard/movements",
     label: "Mouvements",
     icon: <HiOutlineClipboardList className="size-5" />,
+    roles: ["ADMIN", "GESTIONNAIRE", "MAGASINIER"],
+  },
+  {
+    href: "/dashboard/inventory",
+    label: "Inventaire",
+    icon: <HiOutlineClipboardCheck className="size-5" />,
     roles: ["ADMIN", "GESTIONNAIRE", "MAGASINIER"],
   },
   {
