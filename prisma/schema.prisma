@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  GESTIONNAIRE
+  MAGASINIER
+}
+
+enum MovementType {
+  IN
+  OUT
+  ADJUST
+}
+
+model User {
+  id           String     @id @default(uuid())
+  name         String     @db.VarChar(120)
+  email        String     @unique @db.VarChar(180)
+  passwordHash String     @map("password_hash") @db.VarChar(255)
+  avatarUrl    String?    @map("avatar_url") @db.VarChar(500)
+  role         UserRole   @default(MAGASINIER)
+  isActive     Boolean    @default(true) @map("is_active")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  movements StockMovement[]
+
+  @@index([role])
+  @@index([isActive])
+  @@map("users")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique @db.VarChar(120)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(180)
+  email     String?  @db.VarChar(180)
+  phone     String?  @db.VarChar(40)
+  address   String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@index([name])
+  @@map("suppliers")
+}
+
+model Product {
+  id             String   @id @default(uuid())
+  sku            String   @unique @db.VarChar(80)
+  name           String   @db.VarChar(180)
+  description    String?
+  unit           String   @default("pièce") @db.VarChar(40)
+  purchasePrice  Decimal  @default(0) @map("purchase_price") @db.Decimal(12, 2)
+  salePrice      Decimal  @default(0) @map("sale_price") @db.Decimal(12, 2)
+  quantity       Int      @default(0)
+  alertThreshold Int      @default(5) @map("alert_threshold")
+  categoryId     String   @map("category_id")
+  supplierId     String?  @map("supplier_id")
+  imageUrl       String?  @map("image_url") @db.VarChar(500)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  category  Category        @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  supplier  Supplier?       @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  movements StockMovement[]
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([supplierId])
+  @@index([quantity])
+  @@index([isActive])
+  @@map("products")
+}
+
+model StockMovement {
+  id             String       @id @default(uuid())
+  productId      String       @map("product_id")
+  type           MovementType
+  quantity       Int
+  quantityBefore Int          @map("quantity_before")
+  quantityAfter  Int          @map("quantity_after")
+  reason         String       @db.VarChar(120)
+  reference      String?      @db.VarChar(120)
+  note           String?
+  userId         String       @map("user_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([productId, createdAt])
+  @@map("stock_movements")
+}
+
+model CompanySettings {
+  id                     String   @id @default(uuid())
+  companyName            String   @default("DealZone") @map("company_name") @db.VarChar(180)
+  address                String?
+  currency               String   @default("XOF") @db.VarChar(10)
+  defaultAlertThreshold  Int      @default(5) @map("default_alert_threshold")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("company_settings")
+}

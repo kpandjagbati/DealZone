@@ -1,0 +1,75 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes: fantasy --default;
+}
+
+@plugin "daisyui/theme" {
+  name: "fantasy";
+  default: true;
+  --color-primary: #ff6600;
+  --color-primary-content: #ffffff;
+}
+
+body {
+  min-height: 100vh;
+}
+
+@keyframes dz-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dz-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.dz-animate-fade-up {
+  animation: dz-fade-up 0.7s ease-out both;
+}
+
+.dz-animate-fade-in {
+  animation: dz-fade-in 0.9s ease-out both;
+}
+
+.dz-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.dz-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.dz-delay-3 {
+  animation-delay: 0.36s;
+}
+
+.dz-home-bg {
+  background-color: var(--color-base-200);
+  background-image:
+    radial-gradient(
+      ellipse 80% 50% at 50% -10%,
+      color-mix(in oklab, var(--color-primary) 22%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      circle at 15% 80%,
+      color-mix(in oklab, var(--color-secondary) 14%, transparent),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 85% 70%,
+      color-mix(in oklab, var(--color-accent) 12%, transparent),
+      transparent 40%
+    );
+}
